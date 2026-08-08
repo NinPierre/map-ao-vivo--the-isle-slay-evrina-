@@ -1,6 +1,7 @@
 import http from 'node:http';
 import net from 'node:net';
-import { readFile, readFileSync, existsSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
+import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -39,7 +40,7 @@ function loadDotEnv(filePath) {
 loadDotEnv(envPath);
 
 const CONFIG = {
-  webPort: Number(process.env.PORT || 3000),
+  webPort: Number(process.env.PORT || 3001),
   rconHost: process.env.RCON_HOST || '127.0.0.1',
   rconPort: Number(process.env.RCON_PORT || 5555),
   rconPassword: process.env.RCON_PASSWORD || '',
@@ -371,9 +372,10 @@ function contentType(filePath) {
 }
 
 async function serveStatic(req, res, pathname) {
-  const safePath = pathname === '/' ? '/index.html' : pathname;
-  const resolved = path.normalize(path.join(publicDir, safePath));
-  if (!resolved.startsWith(publicDir)) {
+  const requestedPath = pathname === '/' || !path.extname(pathname) ? '/index.html' : pathname;
+  const relativePath = requestedPath.replace(/^\/+/, '');
+  const resolved = path.resolve(publicDir, relativePath);
+  if (!resolved.startsWith(publicDir + path.sep)) {
     res.writeHead(403);
     res.end('Forbidden');
     return;

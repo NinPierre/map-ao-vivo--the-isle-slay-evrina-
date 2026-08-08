@@ -15,12 +15,12 @@ Painel web para **The Isle: Evrima** com leitura ao vivo via RCON.
 1. Instale o Node.js 18+.
 2. Copie `.env.example` para `.env` e ajuste os valores.
 3. Inicie com `npm start`.
-4. Abra `http://localhost:3000`.
+4. Abra `http://localhost:3001`.
 
 ### Exemplo `.env`
 
 ```env
-PORT=3000
+PORT=3001
 RCON_HOST=127.0.0.1
 RCON_PORT=5555
 RCON_PASSWORD=genomaslot
@@ -33,7 +33,7 @@ MAP_MAX_COORD=320000
 
 ## Variáveis
 
-- `PORT`: porta da interface web, padrão `3000`
+- `PORT`: porta da interface web, padrão `3001`
 - `RCON_HOST`: host do RCON
 - `RCON_PORT`: porta do RCON
 - `RCON_PASSWORD`: senha do RCON
