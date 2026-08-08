@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>The Isle Live Map</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="aurora aurora-one"></div>
+    <div class="aurora aurora-two"></div>
+    <div class="grain"></div>
+
+    <main class="shell">
+      <section class="hero glass">
+        <div>
+          <p class="eyebrow">The Isle: Evrima live map</p>
+          <h1>Mapa ao vivo com RCON, bonito e pronto para rastrear sua tribo.</h1>
+          <p class="lede">
+            Conecte no seu servidor remoto via <code>RCON_HOST</code>, <code>RCON_PORT</code> e
+            <code>RCON_PASSWORD</code>. O painel puxa <code>getPlayerData</code> e desenha cada
+            jogador no mapa em tempo real.
+          </p>
+        </div>
+
+        <div class="hero-stats">
+          <article class="stat-card">
+            <span>Status</span>
+            <strong id="statusText">Conectando</strong>
+          </article>
+          <article class="stat-card">
+            <span>Jogadores</span>
+            <strong id="playerCount">0</strong>
+          </article>
+          <article class="stat-card">
+            <span>Atualizado</span>
+            <strong id="updatedAt">--:--:--</strong>
+          </article>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <div class="map-panel glass">
+          <div class="panel-head">
+            <div>
+              <p class="panel-kicker">Gateway tactical view</p>
+              <h2>Mapa principal</h2>
+            </div>
+            <div class="panel-actions">
+              <label class="mini-field">
+                <span>Filtro</span>
+                <input id="searchInput" type="search" placeholder="Nome, classe ou ID" />
+              </label>
+              <label class="mini-field">
+                <span>Ir para coord</span>
+                <input id="manualInput" type="text" placeholder="Lat, Long, Alt" />
+              </label>
+              <button id="applyButton" class="button button-primary">Aplicar</button>
+            </div>
+          </div>
+
+          <div class="map-stage">
+            <svg id="mapSvg" viewBox="0 0 1200 980" preserveAspectRatio="none" aria-label="Mapa">
+              <defs>
+                <linearGradient id="waterGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#07131d" />
+                  <stop offset="100%" stop-color="#03070b" />
+                </linearGradient>
+                <linearGradient id="landFill" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#244c2f" />
+                  <stop offset="100%" stop-color="#102518" />
+                </linearGradient>
+                <radialGradient id="pulse" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stop-color="rgba(224, 193, 92, 0.9)" />
+                  <stop offset="100%" stop-color="rgba(224, 193, 92, 0)" />
+                </radialGradient>
+                <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur stdDeviation="6" result="blur" />
+                  <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+
+              <rect width="1200" height="980" fill="url(#waterGlow)" />
+
+              <g opacity="0.23">
+                <path d="M0 160H1200" class="grid-line" />
+                <path d="M0 320H1200" class="grid-line" />
+                <path d="M0 490H1200" class="grid-line" />
+                <path d="M0 660H1200" class="grid-line" />
+                <path d="M0 820H1200" class="grid-line" />
+                <path d="M150 0V980" class="grid-line" />
+                <path d="M320 0V980" class="grid-line" />
+                <path d="M500 0V980" class="grid-line" />
+                <path d="M680 0V980" class="grid-line" />
+                <path d="M850 0V980" class="grid-line" />
+                <path d="M1030 0V980" class="grid-line" />
+              </g>
+
+              <path
+                d="M186 92
+                   C114 188 88 296 108 378
+                   C132 474 206 540 230 624
+                   C258 723 220 810 244 862
+                   C285 951 454 953 567 909
+                   C681 864 721 777 812 716
+                   C918 645 1062 612 1103 528
+                   C1146 441 1098 318 1014 255
+                   C934 194 906 117 821 84
+                   C722 47 636 91 558 90
+                   C465 89 362 41 286 54
+                   C248 60 214 74 186 92 Z"
+                fill="url(#landFill)"
+                stroke="rgba(231, 209, 143, 0.18)"
+                stroke-width="4"
+              />
+
+              <path
+                d="M244 164 C352 130 420 154 506 206 C580 251 651 258 724 224 C833 173 934 172 1010 233"
+                class="ridge"
+              />
+              <path
+                d="M228 310 C329 292 429 315 515 372 C596 426 699 442 808 421 C900 404 981 370 1060 312"
+                class="ridge"
+              />
+              <path
+                d="M244 520 C348 490 423 510 494 570 C569 634 656 670 748 660 C856 648 928 601 1002 552"
+                class="ridge"
+              />
+              <path
+                d="M305 792 C390 743 469 736 548 770 C638 808 719 816 818 789 C913 764 988 710 1056 650"
+                class="ridge"
+              />
+
+              <g id="poiLayer"></g>
+              <g id="markerLayer"></g>
+              <g id="labelLayer"></g>
+            </svg>
+
+            <div class="map-legend">
+              <span><i class="dot dot-green"></i> Jogador</span>
+              <span><i class="dot dot-amber"></i> Destaque</span>
+              <span><i class="dot dot-blue"></i> Curso d'agua</span>
+            </div>
+          </div>
+        </div>
+
+        <aside class="side-column">
+          <section class="glass side-card">
+            <div class="panel-head compact">
+              <div>
+                <p class="panel-kicker">Live roster</p>
+                <h2>Jogadores</h2>
+              </div>
+              <span id="visibleCount" class="pill">0 visíveis</span>
+            </div>
+            <div id="playerList" class="player-list"></div>
+          </section>
+
+          <section class="glass side-card">
+            <div class="panel-head compact">
+              <div>
+                <p class="panel-kicker">RCON console</p>
+                <h2>Diagnóstico</h2>
+              </div>
+            </div>
+            <div class="console-grid">
+              <div class="console-item">
+                <span>Host</span>
+                <strong id="rconHost">--</strong>
+              </div>
+              <div class="console-item">
+                <span>Porta</span>
+                <strong id="rconPort">--</strong>
+              </div>
+              <div class="console-item">
+                <span>Mapa</span>
+                <strong>Gateway</strong>
+              </div>
+              <div class="console-item">
+                <span>Fonte</span>
+                <strong>getPlayerData</strong>
+              </div>
+            </div>
+            <p class="note" id="errorText">
+              Configure <code>RCON_HOST</code>, <code>RCON_PORT</code> e <code>RCON_PASSWORD</code>
+              no servidor desta página.
+            </p>
+          </section>
+
+          <section class="glass side-card">
+            <div class="panel-head compact">
+              <div>
+                <p class="panel-kicker">Calibration</p>
+                <h2>Coords</h2>
+              </div>
+            </div>
+            <p class="note">
+              O mapa usa uma grade calibrável. Se o seu servidor tiver escala diferente, ajuste
+              <code>MAP_MIN_COORD</code> e <code>MAP_MAX_COORD</code> no backend.
+            </p>
+          </section>
+        </aside>
+      </section>
+    </main>
+
+    <template id="playerTemplate">
+      <article class="player-card">
+        <div class="player-meta">
+          <strong class="player-name"></strong>
+          <span class="player-class"></span>
+        </div>
+        <div class="player-bars">
+          <div class="bar">
+            <span>Growth</span>
+            <i class="fill growth"></i>
+          </div>
+          <div class="bar">
+            <span>Health</span>
+            <i class="fill health"></i>
+          </div>
+        </div>
+        <div class="player-foot">
+          <span class="player-id"></span>
+          <span class="player-coords"></span>
+        </div>
+      </article>
+    </template>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>

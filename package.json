@@ -1,0 +1,10 @@
+{
+  "name": "the-isle-live-map",
+  "version": "1.0.0",
+  "description": "Live map dashboard for The Isle: Evrima using RCON player data.",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  }
+}
