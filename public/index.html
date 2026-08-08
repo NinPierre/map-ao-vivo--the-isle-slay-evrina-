@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>The Isle Live Map</title>
+    <title>The Isle · Evrima</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -13,20 +13,14 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <div class="aurora aurora-one"></div>
-    <div class="aurora aurora-two"></div>
     <div class="grain"></div>
 
     <main class="shell">
       <section class="hero glass">
         <div>
-          <p class="eyebrow">The Isle: Evrima live map</p>
-          <h1>Mapa ao vivo com RCON, bonito e pronto para rastrear sua tribo.</h1>
-          <p class="lede">
-            Conecte no seu servidor remoto via <code>RCON_HOST</code>, <code>RCON_PORT</code> e
-            <code>RCON_PASSWORD</code>. O painel puxa <code>getPlayerData</code> e desenha cada
-            jogador no mapa em tempo real.
-          </p>
+          <p class="eyebrow">The Isle · Evrima</p>
+          <h1>Mapa ao vivo.</h1>
+          <p class="lede">RCON, jogadores e coordenadas em uma tela limpa.</p>
         </div>
 
         <div class="hero-stats">
@@ -49,8 +43,8 @@
         <div class="map-panel glass">
           <div class="panel-head">
             <div>
-              <p class="panel-kicker">Gateway tactical view</p>
-              <h2>Mapa principal</h2>
+              <p class="panel-kicker">Mapa</p>
+              <h2>Gateway</h2>
             </div>
             <div class="panel-actions">
               <label class="mini-field">
@@ -58,10 +52,10 @@
                 <input id="searchInput" type="search" placeholder="Nome, classe ou ID" />
               </label>
               <label class="mini-field">
-                <span>Ir para coord</span>
+                <span>Coordenada</span>
                 <input id="manualInput" type="text" placeholder="Lat, Long, Alt" />
               </label>
-              <button id="applyButton" class="button button-primary">Aplicar</button>
+              <button id="applyButton" class="button button-primary">Ir</button>
             </div>
           </div>
 
@@ -76,17 +70,6 @@
                   <stop offset="0%" stop-color="#244c2f" />
                   <stop offset="100%" stop-color="#102518" />
                 </linearGradient>
-                <radialGradient id="pulse" cx="50%" cy="50%" r="50%">
-                  <stop offset="0%" stop-color="rgba(224, 193, 92, 0.9)" />
-                  <stop offset="100%" stop-color="rgba(224, 193, 92, 0)" />
-                </radialGradient>
-                <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
-                  <feGaussianBlur stdDeviation="6" result="blur" />
-                  <feMerge>
-                    <feMergeNode in="blur" />
-                    <feMergeNode in="SourceGraphic" />
-                  </feMerge>
-                </filter>
               </defs>
 
               <rect width="1200" height="980" fill="url(#waterGlow)" />
@@ -123,22 +106,10 @@
                 stroke-width="4"
               />
 
-              <path
-                d="M244 164 C352 130 420 154 506 206 C580 251 651 258 724 224 C833 173 934 172 1010 233"
-                class="ridge"
-              />
-              <path
-                d="M228 310 C329 292 429 315 515 372 C596 426 699 442 808 421 C900 404 981 370 1060 312"
-                class="ridge"
-              />
-              <path
-                d="M244 520 C348 490 423 510 494 570 C569 634 656 670 748 660 C856 648 928 601 1002 552"
-                class="ridge"
-              />
-              <path
-                d="M305 792 C390 743 469 736 548 770 C638 808 719 816 818 789 C913 764 988 710 1056 650"
-                class="ridge"
-              />
+              <path d="M244 164 C352 130 420 154 506 206 C580 251 651 258 724 224 C833 173 934 172 1010 233" class="ridge" />
+              <path d="M228 310 C329 292 429 315 515 372 C596 426 699 442 808 421 C900 404 981 370 1060 312" class="ridge" />
+              <path d="M244 520 C348 490 423 510 494 570 C569 634 656 670 748 660 C856 648 928 601 1002 552" class="ridge" />
+              <path d="M305 792 C390 743 469 736 548 770 C638 808 719 816 818 789 C913 764 988 710 1056 650" class="ridge" />
 
               <g id="poiLayer"></g>
               <g id="markerLayer"></g>
@@ -147,8 +118,8 @@
 
             <div class="map-legend">
               <span><i class="dot dot-green"></i> Jogador</span>
-              <span><i class="dot dot-amber"></i> Destaque</span>
-              <span><i class="dot dot-blue"></i> Curso d'agua</span>
+              <span><i class="dot dot-amber"></i> Foco</span>
+              <span><i class="dot dot-blue"></i> Água</span>
             </div>
           </div>
         </div>
@@ -157,7 +128,7 @@
           <section class="glass side-card">
             <div class="panel-head compact">
               <div>
-                <p class="panel-kicker">Live roster</p>
+                <p class="panel-kicker">Lista</p>
                 <h2>Jogadores</h2>
               </div>
               <span id="visibleCount" class="pill">0 visíveis</span>
@@ -168,8 +139,8 @@
           <section class="glass side-card">
             <div class="panel-head compact">
               <div>
-                <p class="panel-kicker">RCON console</p>
-                <h2>Diagnóstico</h2>
+                <p class="panel-kicker">RCON</p>
+                <h2>Estado</h2>
               </div>
             </div>
             <div class="console-grid">
@@ -192,14 +163,14 @@
             </div>
             <p class="note" id="errorText">
               Configure <code>RCON_HOST</code>, <code>RCON_PORT</code> e <code>RCON_PASSWORD</code>
-              no servidor desta página.
+              no <code>.env</code>.
             </p>
           </section>
 
           <section class="glass side-card">
             <div class="panel-head compact">
               <div>
-                <p class="panel-kicker">Calibration</p>
+                <p class="panel-kicker">Escala</p>
                 <h2>Coords</h2>
               </div>
             </div>

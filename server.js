@@ -260,7 +260,7 @@ class EvrimaRconClient {
     try {
       await connect();
 
-      socket.write(Buffer.concat([Buffer.from([0x01]), Buffer.from(this.password, 'utf8'), Buffer.from([0x00])]));
+      socket.write(Buffer.concat([Buffer.from([0x01]), Buffer.from(this.password, 'utf8')]));
       const authReply = await readResponse();
       if (!/Password Accepted/i.test(authReply)) {
         throw new Error(authReply || 'RCON authentication failed');
@@ -269,8 +269,7 @@ class EvrimaRconClient {
       const commandPayload = args.length ? args.join(',') : '';
       socket.write(Buffer.concat([
         Buffer.from([0x02, opcode]),
-        Buffer.from(commandPayload, 'utf8'),
-        Buffer.from([0x00])
+        Buffer.from(commandPayload, 'utf8')
       ]));
 
       return await readResponse();

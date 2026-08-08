@@ -120,13 +120,14 @@ function setStatus(ok, error) {
   if (ok) {
     els.statusText.textContent = 'RCON online';
     els.statusText.style.color = '#dff6d3';
-    els.errorText.textContent = 'Tudo certo. Os jogadores do servidor remoto estão sendo atualizados ao vivo.';
+    els.errorText.textContent = 'Conexão ativa com o servidor.';
     return;
   }
 
-  els.statusText.textContent = 'Falha na conexao';
+  els.statusText.textContent = 'Sem conexão';
   els.statusText.style.color = '#f28b82';
-  els.errorText.textContent = error || 'Nao foi possivel falar com o RCON. Verifique host, porta, senha e reinicie o servidor se alterou os parametros.';
+  els.errorText.textContent =
+    error || 'Não foi possível falar com o RCON. Confira host, porta, senha e reinicie o servidor se mudar os parâmetros.';
 }
 
 function renderRoster() {
@@ -272,7 +273,7 @@ async function refresh() {
       applyConfig(configRes);
       els.rconHost.textContent = configRes.rconHost;
       els.rconPort.textContent = String(configRes.rconPort);
-      els.statusText.textContent = configRes.rconConfigured ? 'Conectando' : 'RCON não configurado';
+      els.statusText.textContent = configRes.rconConfigured ? 'Conectando...' : 'RCON não configurado';
     }
 
     const payload = await stateRes.json();
@@ -317,6 +318,7 @@ function seedFallback() {
   state.updatedAt = new Date().toISOString();
   els.rconHost.textContent = '--';
   els.rconPort.textContent = '--';
+  els.statusText.textContent = 'Conectando...';
   renderAll();
 }
 
