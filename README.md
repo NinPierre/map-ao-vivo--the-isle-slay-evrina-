@@ -24,8 +24,9 @@ PORT=3001
 RCON_HOST=127.0.0.1
 RCON_PORT=5555
 RCON_PASSWORD=genomaslot
-RCON_CONNECT_TIMEOUT_MS=4000
-RCON_RESPONSE_TIMEOUT_MS=3000
+RCON_CONNECT_TIMEOUT_MS=15000
+RCON_RESPONSE_TIMEOUT_MS=15000
+RCON_IDLE_RESPONSE_MS=180
 RCON_CACHE_TTL_MS=1500
 MAP_MIN_COORD=-320000
 MAP_MAX_COORD=320000
@@ -37,8 +38,9 @@ MAP_MAX_COORD=320000
 - `RCON_HOST`: host do RCON
 - `RCON_PORT`: porta do RCON
 - `RCON_PASSWORD`: senha do RCON
-- `RCON_CONNECT_TIMEOUT_MS`: timeout de conexão, padrão `4000`
-- `RCON_RESPONSE_TIMEOUT_MS`: timeout de resposta, padrão `3000`
+- `RCON_CONNECT_TIMEOUT_MS`: timeout de conexão, padrão `15000`
+- `RCON_RESPONSE_TIMEOUT_MS`: timeout de resposta, padrão `15000`
+- `RCON_IDLE_RESPONSE_MS`: tempo de silêncio para fechar a leitura, padrão `180`
 - `RCON_CACHE_TTL_MS`: cache curto para evitar excesso de requisições, padrão `1500`
 - `MAP_MIN_COORD`: limite inferior da grade do mapa, padrão `-320000`
 - `MAP_MAX_COORD`: limite superior da grade do mapa, padrão `320000`

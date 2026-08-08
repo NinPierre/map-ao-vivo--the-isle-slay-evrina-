@@ -44,8 +44,9 @@ const CONFIG = {
   rconHost: process.env.RCON_HOST || '127.0.0.1',
   rconPort: Number(process.env.RCON_PORT || 5555),
   rconPassword: process.env.RCON_PASSWORD || '',
-  connectTimeoutMs: Number(process.env.RCON_CONNECT_TIMEOUT_MS || 4000),
-  responseTimeoutMs: Number(process.env.RCON_RESPONSE_TIMEOUT_MS || 3000),
+  connectTimeoutMs: Number(process.env.RCON_CONNECT_TIMEOUT_MS || 15000),
+  responseTimeoutMs: Number(process.env.RCON_RESPONSE_TIMEOUT_MS || 15000),
+  idleResponseMs: Number(process.env.RCON_IDLE_RESPONSE_MS || 180),
   cacheTtlMs: Number(process.env.RCON_CACHE_TTL_MS || 1500),
   mapMinCoord: Number(process.env.MAP_MIN_COORD || -320000),
   mapMaxCoord: Number(process.env.MAP_MAX_COORD || 320000)
@@ -78,6 +79,7 @@ function sanitizeConfig() {
     rconPort: CONFIG.rconPort,
     connectTimeoutMs: CONFIG.connectTimeoutMs,
     responseTimeoutMs: CONFIG.responseTimeoutMs,
+    idleResponseMs: CONFIG.idleResponseMs,
     cacheTtlMs: CONFIG.cacheTtlMs,
     mapMinCoord: CONFIG.mapMinCoord,
     mapMaxCoord: CONFIG.mapMaxCoord,
@@ -168,12 +170,13 @@ function parseServerDetails(raw) {
 }
 
 class EvrimaRconClient {
-  constructor({ host, port, password, connectTimeoutMs, responseTimeoutMs }) {
+  constructor({ host, port, password, connectTimeoutMs, responseTimeoutMs, idleResponseMs }) {
     this.host = host;
     this.port = port;
     this.password = password;
     this.connectTimeoutMs = connectTimeoutMs;
     this.responseTimeoutMs = responseTimeoutMs;
+    this.idleResponseMs = idleResponseMs;
   }
 
   async request(opcode, args = []) {
@@ -222,7 +225,9 @@ class EvrimaRconClient {
           if (finished) return;
           finished = true;
           cleanup();
-          resolve(Buffer.concat(chunks).toString('utf8').replace(/\0/g, '').trim());
+          const payload = Buffer.concat(chunks);
+          const normalized = payload.length > 0 && payload[0] === 0x03 ? payload.subarray(1) : payload;
+          resolve(normalized.toString('utf8').replace(/\0/g, '').trim());
         };
 
         const onError = (err) => {
@@ -247,7 +252,7 @@ class EvrimaRconClient {
         const onData = (chunk) => {
           chunks.push(chunk);
           if (idleTimer) clearTimeout(idleTimer);
-          idleTimer = setTimeout(finish, 180);
+          idleTimer = setTimeout(finish, this.idleResponseMs);
         };
 
         socket.on('data', onData);
@@ -260,7 +265,7 @@ class EvrimaRconClient {
     try {
       await connect();
 
-      socket.write(Buffer.concat([Buffer.from([0x01]), Buffer.from(this.password, 'utf8')]));
+      socket.write(Buffer.concat([Buffer.from([0x01]), Buffer.from(this.password, 'utf8'), Buffer.from([0x00])]));
       const authReply = await readResponse();
       if (!/Password Accepted/i.test(authReply)) {
         throw new Error(authReply || 'RCON authentication failed');
@@ -269,7 +274,8 @@ class EvrimaRconClient {
       const commandPayload = args.length ? args.join(',') : '';
       socket.write(Buffer.concat([
         Buffer.from([0x02, opcode]),
-        Buffer.from(commandPayload, 'utf8')
+        Buffer.from(commandPayload, 'utf8'),
+        Buffer.from([0x00])
       ]));
 
       return await readResponse();
@@ -298,13 +304,14 @@ async function fetchState() {
   if (freshEnough) return stateCache.value;
 
   stateCache.inFlight = (async () => {
-    const client = new EvrimaRconClient({
-      host: CONFIG.rconHost,
-      port: CONFIG.rconPort,
-      password: CONFIG.rconPassword,
-      connectTimeoutMs: CONFIG.connectTimeoutMs,
-      responseTimeoutMs: CONFIG.responseTimeoutMs
-    });
+      const client = new EvrimaRconClient({
+        host: CONFIG.rconHost,
+        port: CONFIG.rconPort,
+        password: CONFIG.rconPassword,
+        connectTimeoutMs: CONFIG.connectTimeoutMs,
+        responseTimeoutMs: CONFIG.responseTimeoutMs,
+        idleResponseMs: CONFIG.idleResponseMs
+      });
 
     try {
       const [serverRaw, playerRaw] = await Promise.all([
