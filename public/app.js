@@ -290,6 +290,14 @@ els.mapSvg.addEventListener('click', (event) => {
   renderAll();
 });
 
+els.mapSvg.addEventListener('contextmenu', (event) => {
+  event.preventDefault();
+  state.selectedId = null;
+  state.selectedCoord = null;
+  els.manualInput.value = '';
+  renderAll();
+});
+
 seedFallback();
 refresh();
 setInterval(refresh, 4000);

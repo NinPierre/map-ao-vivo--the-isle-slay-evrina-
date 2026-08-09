@@ -398,14 +398,14 @@ h2 {
 }
 
 .map-point {
-  transition: transform 160ms ease, filter 160ms ease;
+  transition: filter 160ms ease;
   transform-origin: center;
   filter: drop-shadow(0 0 12px rgba(143, 195, 107, 0.35));
   cursor: pointer;
 }
 
 .map-point:hover {
-  transform: scale(1.14);
+  filter: drop-shadow(0 0 16px rgba(255, 77, 77, 0.8));
 }
 
 .map-label {
