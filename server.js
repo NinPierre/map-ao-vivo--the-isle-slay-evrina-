@@ -142,7 +142,7 @@ function parsePlayerData(raw) {
   const lines = raw.replace(/\0/g, '').split(/\r?\n/);
   const players = [];
   const matcher =
-    /Name:\s*(.*?)\s*,\s*PlayerID:\s*([^,]+),\s*Location:\s*X=([-,.\d]+)\s*Y=([-,.\d]+)\s*Z=([-,.\d]+),\s*Class:\s*([^,]+),\s*Growth:\s*([-,.\d]+),\s*Health:\s*([-,.\d]+),\s*Stamina:\s*([-,.\d]+),\s*Hunger:\s*([-,.\d]+),\s*Thirst:\s*([-,.\d]+)/;
+    /Name:\s*(.*?)\s*,\s*PlayerID:\s*([^,]+)[\s\S]*?Location:\s*X=([-\.\d]+)\s*Y=([-\.\d]+)\s*Z=([-\.\d]+)[\s\S]*?Class:\s*([^,]+)[\s\S]*?Growth:\s*([-\.\d]+)[\s\S]*?Health:\s*([-\.\d]+)[\s\S]*?Stamina:\s*([-\.\d]+)[\s\S]*?Hunger:\s*([-\.\d]+)[\s\S]*?Thirst:\s*([-\.\d]+)/i;
 
   for (const line of lines) {
     const match = line.match(matcher);
