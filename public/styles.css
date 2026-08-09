@@ -128,7 +128,7 @@ h2 {
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(0, 2.1fr) minmax(320px, 0.9fr);
+  grid-template-columns: minmax(0, 2.35fr) minmax(300px, 0.75fr);
   gap: 18px;
   margin-top: 18px;
   align-items: start;
@@ -141,7 +141,7 @@ h2 {
 
 .map-panel {
   padding: 18px;
-  min-height: 720px;
+  min-height: 760px;
 }
 
 .side-column {
@@ -288,6 +288,10 @@ h2 {
   background: var(--amber);
 }
 
+.dot-red {
+  background: #ff4d4d;
+}
+
 .dot-blue {
   background: var(--blue);
 }
@@ -307,15 +311,21 @@ h2 {
 .player-list {
   display: grid;
   gap: 12px;
-  max-height: 440px;
+  max-height: 560px;
   overflow: auto;
   padding-right: 4px;
 }
 
 .player-card {
-  border-radius: 20px;
-  padding: 15px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.015));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  border-radius: 16px;
+  padding: 14px 15px;
+  text-align: left;
+  color: var(--text);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
   border: 1px solid rgba(255, 255, 255, 0.06);
   cursor: pointer;
   transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
@@ -324,63 +334,23 @@ h2 {
 .player-card:hover,
 .player-card.is-selected {
   transform: translateY(-2px);
-  border-color: rgba(225, 193, 92, 0.28);
-  background: linear-gradient(180deg, rgba(225, 193, 92, 0.08), rgba(255, 255, 255, 0.02));
-}
-
-.player-meta,
-.player-foot {
-  display: flex;
-  justify-content: space-between;
-  gap: 14px;
+  border-color: rgba(255, 77, 77, 0.3);
+  background: linear-gradient(180deg, rgba(255, 77, 77, 0.12), rgba(255, 255, 255, 0.03));
 }
 
 .player-name {
   font-size: 1rem;
+  letter-spacing: 0.01em;
 }
 
-.player-class,
-.player-id,
-.player-coords {
-  color: var(--muted);
-  font-size: 0.84rem;
-}
-
-.player-bars {
-  display: grid;
-  gap: 8px;
-  margin: 14px 0;
-}
-
-.bar {
-  display: grid;
-  gap: 6px;
-}
-
-.bar span {
-  color: var(--muted);
-  font-size: 0.74rem;
-}
-
-.fill {
-  display: block;
-  height: 7px;
+.player-card::after {
+  content: '';
+  width: 12px;
+  height: 12px;
   border-radius: 999px;
-}
-
-.fill.growth {
-  background: linear-gradient(90deg, #f0d26b, #d59f39);
-}
-
-.fill.health {
-  background: linear-gradient(90deg, #8fd08c, #4e8f58);
-}
-
-.console-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  margin-bottom: 12px;
+  background: #ff4d4d;
+  box-shadow: 0 0 14px rgba(255, 77, 77, 0.8);
+  flex: 0 0 auto;
 }
 
 .note {

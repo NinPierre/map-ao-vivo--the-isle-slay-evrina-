@@ -18,14 +18,11 @@ const els = {
   playerCount: document.querySelector('#playerCount'),
   visibleCount: document.querySelector('#visibleCount'),
   updatedAt: document.querySelector('#updatedAt'),
-  errorText: document.querySelector('#errorText'),
   playerList: document.querySelector('#playerList'),
   playerTemplate: document.querySelector('#playerTemplate'),
   searchInput: document.querySelector('#searchInput'),
   manualInput: document.querySelector('#manualInput'),
   applyButton: document.querySelector('#applyButton'),
-  rconHost: document.querySelector('#rconHost'),
-  rconPort: document.querySelector('#rconPort'),
   mapSvg: document.querySelector('#mapSvg'),
   markerLayer: document.querySelector('#markerLayer'),
   labelLayer: document.querySelector('#labelLayer'),
@@ -112,42 +109,29 @@ function isVisible(player) {
   return haystack.includes(search);
 }
 
-function isLoopbackHost(host) {
-  return /^(127\.0\.0\.1|localhost)$/i.test(String(host || '').trim());
-}
-
 function speciesPalette(className) {
   const key = String(className || '').toLowerCase();
   if (key.includes('cerato') || key.includes('carno') || key.includes('deino') || key.includes('omni')) {
-    return 'rgba(225, 193, 92, 0.95)';
+    return 'rgba(255, 77, 77, 1)';
   }
   if (key.includes('trike') || key.includes('pachy') || key.includes('stego') || key.includes('tenonto')) {
-    return 'rgba(143, 195, 107, 0.95)';
+    return 'rgba(255, 77, 77, 1)';
   }
   if (key.includes('ptero') || key.includes('hypso')) {
-    return 'rgba(125, 193, 243, 0.95)';
+    return 'rgba(255, 77, 77, 1)';
   }
-  return 'rgba(231, 241, 222, 0.92)';
+  return 'rgba(255, 77, 77, 1)';
 }
 
-function setStatus(ok, error) {
-  const host = state.config?.rconHost || '';
+function setStatus(ok) {
   if (ok) {
-    els.statusText.textContent = 'RCON online';
+    els.statusText.textContent = 'Servidor online';
     els.statusText.style.color = '#dff6d3';
-    els.errorText.textContent = error || 'Conexao ativa com o servidor.';
     return;
   }
 
-  els.statusText.textContent = 'Sem conexao';
+  els.statusText.textContent = 'Sem dados';
   els.statusText.style.color = '#f28b82';
-  if (isLoopbackHost(host)) {
-    els.errorText.textContent =
-      'RCON em 127.0.0.1:5555 sem resposta. Se o servidor do jogo estiver em outra maquina, use o IP dela.';
-    return;
-  }
-
-  els.errorText.textContent = error || 'Nao foi possivel falar com o RCON. Confira host, porta, senha e firewall.';
 }
 
 function renderRoster() {
@@ -172,15 +156,6 @@ function renderRoster() {
     const node = template.content.firstElementChild.cloneNode(true);
     node.classList.toggle('is-selected', player.id === state.selectedId);
     node.querySelector('.player-name').textContent = player.name || 'Sem nome';
-    node.querySelector('.player-class').textContent = player.className || 'Unknown';
-    node.querySelector('.player-id').textContent = player.id;
-    node.querySelector('.player-coords').textContent =
-      `X ${formatNumber(player.x)} | Y ${formatNumber(player.y)} | Z ${formatNumber(player.z)}`;
-
-    const growth = node.querySelector('.fill.growth');
-    const health = node.querySelector('.fill.health');
-    growth.style.width = `${clamp(normalisePercent(player.growth), 0, 100)}%`;
-    health.style.width = `${clamp(normalisePercent(player.health), 0, 100)}%`;
 
     node.addEventListener('click', () => {
       state.selectedId = player.id;
@@ -206,23 +181,25 @@ function renderMap() {
   state.filteredPlayers
     .filter((player) => Number.isFinite(player.x) && Number.isFinite(player.y))
     .forEach((player, index) => {
-    const point = gameToMap(player.y, player.x);
+    const point = gameToMap(player.x, player.y);
     const isSelected = selected ? player.id === selected.id : index === 0;
 
     const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     ring.setAttribute('cx', point.x);
     ring.setAttribute('cy', point.y);
-    ring.setAttribute('r', isSelected ? '26' : '20');
+    ring.setAttribute('r', isSelected ? '22' : '18');
     ring.setAttribute('fill', 'none');
-    ring.setAttribute('stroke', isSelected ? 'rgba(225, 193, 92, 0.45)' : 'rgba(143, 195, 107, 0.24)');
+    ring.setAttribute('stroke', 'rgba(255, 77, 77, 0.34)');
     ring.setAttribute('stroke-width', isSelected ? '4' : '3');
     els.markerLayer.appendChild(ring);
 
     const pulse = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     pulse.setAttribute('cx', point.x);
     pulse.setAttribute('cy', point.y);
-    pulse.setAttribute('r', isSelected ? '8' : '6');
+    pulse.setAttribute('r', isSelected ? '9' : '7');
     pulse.setAttribute('fill', speciesPalette(player.className));
+    pulse.setAttribute('stroke', 'rgba(255, 255, 255, 0.9)');
+    pulse.setAttribute('stroke-width', '2');
     pulse.classList.add('map-point');
     if (isSelected) pulse.classList.add('selected-pin');
     pulse.addEventListener('click', () => {
@@ -232,22 +209,15 @@ function renderMap() {
       renderAll();
     });
     els.markerLayer.appendChild(pulse);
-
-    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    label.setAttribute('x', point.x + 12);
-    label.setAttribute('y', point.y - 14);
-    label.classList.add('map-label');
-    label.textContent = player.name;
-    els.labelLayer.appendChild(label);
     });
 
   if (selectedCoord) {
-    const point = gameToMap(selectedCoord.y, selectedCoord.x);
+    const point = gameToMap(selectedCoord.x, selectedCoord.y);
     const cross = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     cross.innerHTML = `
-      <circle cx="${point.x}" cy="${point.y}" r="18" fill="rgba(225, 193, 92, 0.08)" stroke="rgba(225, 193, 92, 0.85)" stroke-width="2"></circle>
-      <path d="M ${point.x - 28} ${point.y} H ${point.x + 28}" stroke="rgba(225, 193, 92, 0.75)" stroke-width="2"></path>
-      <path d="M ${point.x} ${point.y - 28} V ${point.y + 28}" stroke="rgba(225, 193, 92, 0.75)" stroke-width="2"></path>
+      <circle cx="${point.x}" cy="${point.y}" r="16" fill="rgba(255, 77, 77, 0.08)" stroke="rgba(255, 77, 77, 0.95)" stroke-width="2"></circle>
+      <path d="M ${point.x - 24} ${point.y} H ${point.x + 24}" stroke="rgba(255, 77, 77, 0.85)" stroke-width="2"></path>
+      <path d="M ${point.x} ${point.y - 24} V ${point.y + 24}" stroke="rgba(255, 77, 77, 0.85)" stroke-width="2"></path>
     `;
     els.markerLayer.appendChild(cross);
   }
@@ -274,19 +244,17 @@ async function refresh() {
     state.server = payload.server || null;
     state.error = payload.ok ? null : payload.error;
     state.updatedAt = payload.updatedAt || new Date().toISOString();
-    setStatus(payload.ok, payload.ok ? payload.warning : payload.error);
+    setStatus(payload.ok);
     renderAll();
   } catch (error) {
     state.error = error instanceof Error ? error.message : String(error);
-    setStatus(false, state.error);
+    setStatus(false);
   }
 }
 
 function seedFallback() {
   state.players = [];
   state.updatedAt = new Date().toISOString();
-  els.rconHost.textContent = '--';
-  els.rconPort.textContent = '--';
   els.statusText.textContent = 'Conectando...';
   renderAll();
 }

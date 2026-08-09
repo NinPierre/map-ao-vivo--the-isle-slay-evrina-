@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>The Isle - Evrima</title>
+    <title>The Isle - Gateway</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -22,12 +22,12 @@
         <div>
           <p class="eyebrow">The Isle / Evrima</p>
           <h1>Gateway ao vivo.</h1>
-          <p class="lede">Jogadores e coordenadas em um mapa real, sem excesso visual.</p>
+          <p class="lede">Mapa real, pontos visiveis e lista limpa dos jogadores online.</p>
         </div>
 
         <div class="hero-stats">
           <article class="stat-card">
-            <span>Status</span>
+            <span>Estado</span>
             <strong id="statusText">Conectando</strong>
           </article>
           <article class="stat-card">
@@ -52,7 +52,7 @@
             <div class="panel-actions">
               <label class="mini-field">
                 <span>Filtro</span>
-                <input id="searchInput" type="search" placeholder="Nome, classe ou ID" />
+                <input id="searchInput" type="search" placeholder="Nome ou ID" />
               </label>
               <label class="mini-field">
                 <span>Coordenadas</span>
@@ -85,7 +85,7 @@
             </div>
 
             <div class="map-legend">
-              <span><i class="dot dot-green"></i> Jogador</span>
+              <span><i class="dot dot-red"></i> Jogador</span>
               <span><i class="dot dot-amber"></i> Foco</span>
             </div>
           </div>
@@ -102,62 +102,14 @@
             </div>
             <div id="playerList" class="player-list"></div>
           </section>
-
-          <section class="glass side-card">
-            <div class="panel-head compact">
-              <div>
-                <p class="panel-kicker">RCON</p>
-                <h2>Conexao</h2>
-              </div>
-            </div>
-            <div class="console-grid">
-              <div class="console-item">
-                <span>Host</span>
-                <strong id="rconHost">--</strong>
-              </div>
-              <div class="console-item">
-                <span>Porta</span>
-                <strong id="rconPort">--</strong>
-              </div>
-              <div class="console-item">
-                <span>Mapa</span>
-                <strong>Gateway</strong>
-              </div>
-              <div class="console-item">
-                <span>Fonte</span>
-                <strong>getPlayerData</strong>
-              </div>
-            </div>
-            <p class="note" id="errorText">
-              Configure <code>RCON_HOST</code>, <code>RCON_PORT</code> e <code>RCON_PASSWORD</code>
-              no <code>.env</code>. Se o servidor estiver em outra maquina, use o IP dela.
-            </p>
-          </section>
         </aside>
       </section>
     </main>
 
     <template id="playerTemplate">
-      <article class="player-card">
-        <div class="player-meta">
-          <strong class="player-name"></strong>
-          <span class="player-class"></span>
-        </div>
-        <div class="player-bars">
-          <div class="bar">
-            <span>Growth</span>
-            <i class="fill growth"></i>
-          </div>
-          <div class="bar">
-            <span>Health</span>
-            <i class="fill health"></i>
-          </div>
-        </div>
-        <div class="player-foot">
-          <span class="player-id"></span>
-          <span class="player-coords"></span>
-        </div>
-      </article>
+      <button class="player-card" type="button">
+        <strong class="player-name"></strong>
+      </button>
     </template>
 
     <script src="/app.js" type="module"></script>
