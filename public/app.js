@@ -125,7 +125,7 @@ function speciesPalette(className) {
 
 function setStatus(ok) {
   if (ok) {
-    els.statusText.textContent = 'Servidor online';
+    els.statusText.textContent = 'online';
     els.statusText.style.color = '#dff6d3';
     return;
   }
@@ -189,7 +189,7 @@ function renderMap() {
     ring.setAttribute('cy', point.y);
     ring.setAttribute('r', isSelected ? '22' : '18');
     ring.setAttribute('fill', 'none');
-    ring.setAttribute('stroke', 'rgba(255, 77, 77, 0.34)');
+    ring.setAttribute('stroke', isSelected ? 'rgba(225, 193, 92, 0.42)' : 'rgba(255, 77, 77, 0.34)');
     ring.setAttribute('stroke-width', isSelected ? '4' : '3');
     els.markerLayer.appendChild(ring);
 
@@ -198,7 +198,7 @@ function renderMap() {
     pulse.setAttribute('cy', point.y);
     pulse.setAttribute('r', isSelected ? '9' : '7');
     pulse.setAttribute('fill', speciesPalette(player.className));
-    pulse.setAttribute('stroke', 'rgba(255, 255, 255, 0.9)');
+    pulse.setAttribute('stroke', isSelected ? 'rgba(255, 225, 122, 0.95)' : 'rgba(255, 255, 255, 0.9)');
     pulse.setAttribute('stroke-width', '2');
     pulse.classList.add('map-point');
     if (isSelected) pulse.classList.add('selected-pin');
@@ -215,9 +215,9 @@ function renderMap() {
     const point = gameToMap(selectedCoord.x, selectedCoord.y);
     const cross = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     cross.innerHTML = `
-      <circle cx="${point.x}" cy="${point.y}" r="16" fill="rgba(255, 77, 77, 0.08)" stroke="rgba(255, 77, 77, 0.95)" stroke-width="2"></circle>
-      <path d="M ${point.x - 24} ${point.y} H ${point.x + 24}" stroke="rgba(255, 77, 77, 0.85)" stroke-width="2"></path>
-      <path d="M ${point.x} ${point.y - 24} V ${point.y + 24}" stroke="rgba(255, 77, 77, 0.85)" stroke-width="2"></path>
+      <circle cx="${point.x}" cy="${point.y}" r="16" fill="rgba(225, 193, 92, 0.08)" stroke="rgba(225, 193, 92, 0.95)" stroke-width="2"></circle>
+      <path d="M ${point.x - 24} ${point.y} H ${point.x + 24}" stroke="rgba(225, 193, 92, 0.9)" stroke-width="2"></path>
+      <path d="M ${point.x} ${point.y - 24} V ${point.y + 24}" stroke="rgba(225, 193, 92, 0.9)" stroke-width="2"></path>
     `;
     els.markerLayer.appendChild(cross);
   }

@@ -348,8 +348,8 @@ h2 {
   width: 12px;
   height: 12px;
   border-radius: 999px;
-  background: #ff4d4d;
-  box-shadow: 0 0 14px rgba(255, 77, 77, 0.8);
+  background: var(--green);
+  box-shadow: 0 0 14px rgba(143, 195, 107, 0.85);
   flex: 0 0 auto;
 }
 
@@ -419,7 +419,7 @@ h2 {
 }
 
 .selected-pin {
-  filter: drop-shadow(0 0 18px rgba(225, 193, 92, 0.6));
+  filter: drop-shadow(0 0 18px rgba(225, 193, 92, 0.9));
 }
 
 @media (max-width: 1120px) {
