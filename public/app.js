@@ -135,7 +135,7 @@ function setStatus(ok, error) {
   if (ok) {
     els.statusText.textContent = 'RCON online';
     els.statusText.style.color = '#dff6d3';
-    els.errorText.textContent = 'Conexao ativa com o servidor.';
+    els.errorText.textContent = error || 'Conexao ativa com o servidor.';
     return;
   }
 
@@ -203,7 +203,9 @@ function renderMap() {
   els.labelLayer.innerHTML = '';
   els.poiLayer.innerHTML = '';
 
-  state.filteredPlayers.forEach((player, index) => {
+  state.filteredPlayers
+    .filter((player) => Number.isFinite(player.x) && Number.isFinite(player.y))
+    .forEach((player, index) => {
     const point = gameToMap(player.y, player.x);
     const isSelected = selected ? player.id === selected.id : index === 0;
 
@@ -237,7 +239,7 @@ function renderMap() {
     label.classList.add('map-label');
     label.textContent = player.name;
     els.labelLayer.appendChild(label);
-  });
+    });
 
   if (selectedCoord) {
     const point = gameToMap(selectedCoord.y, selectedCoord.x);
@@ -272,7 +274,7 @@ async function refresh() {
     state.server = payload.server || null;
     state.error = payload.ok ? null : payload.error;
     state.updatedAt = payload.updatedAt || new Date().toISOString();
-    setStatus(payload.ok, payload.error);
+    setStatus(payload.ok, payload.ok ? payload.warning : payload.error);
     renderAll();
   } catch (error) {
     state.error = error instanceof Error ? error.message : String(error);

@@ -166,6 +166,127 @@ function parsePlayerData(raw) {
   return players;
 }
 
+function parsePlayerList(rawResponse) {
+  const raw = String(rawResponse || '').replace(/\r/g, '\n');
+  const lines = raw
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter(
+      (line) =>
+        !/^playerlist$/i.test(line) &&
+        !/^playerlistend$/i.test(line) &&
+        !/^error/i.test(line)
+    );
+
+  const players = [];
+  const seen = new Set();
+
+  const addPlayer = (steamId, name) => {
+    if (!steamId || seen.has(steamId)) return;
+    seen.add(steamId);
+    players.push({
+      id: steamId,
+      name: name || 'Desconhecido'
+    });
+  };
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const current = lines[index];
+    const idTokens = current
+      .split(',')
+      .map((token) => token.trim())
+      .filter(Boolean);
+
+    if (idTokens.length === 0 || !idTokens.every((token) => /^\d{17}$/.test(token))) {
+      continue;
+    }
+
+    const nextLine = lines[index + 1] || '';
+    const nameTokens = nextLine
+      .split(',')
+      .map((token) => token.trim())
+      .filter(Boolean);
+
+    const useNames = nameTokens.length >= idTokens.length;
+    for (let tokenIndex = 0; tokenIndex < idTokens.length; tokenIndex += 1) {
+      addPlayer(idTokens[tokenIndex], useNames ? nameTokens[tokenIndex] : 'Desconhecido');
+    }
+
+    if (useNames) {
+      index += 1;
+    }
+  }
+
+  for (const line of lines) {
+    const ids = line.match(/\b\d{17}\b/g);
+    if (!ids) continue;
+
+    if (ids.length > 1) {
+      for (const steamId of ids) {
+        addPlayer(steamId, 'Desconhecido');
+      }
+      continue;
+    }
+
+    const steamId = ids[0];
+    const name = line
+      .replace(steamId, '')
+      .replace(/[|;,]/g, ' ')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+    addPlayer(steamId, name || 'Desconhecido');
+  }
+
+  return players;
+}
+
+function mergePlayerRecords(basePlayers, detailPlayers, previousPlayers = []) {
+  const detailById = new Map(detailPlayers.map((player) => [player.id, player]));
+  const previousById = new Map(previousPlayers.map((player) => [player.id, player]));
+
+  const merged = basePlayers.map((basePlayer) => {
+    const detail = detailById.get(basePlayer.id) || {};
+    const previous = previousById.get(basePlayer.id) || {};
+    const x = Number.isFinite(detail.x) ? detail.x : Number.isFinite(previous.x) ? previous.x : null;
+    const y = Number.isFinite(detail.y) ? detail.y : Number.isFinite(previous.y) ? previous.y : null;
+    const z = Number.isFinite(detail.z) ? detail.z : Number.isFinite(previous.z) ? previous.z : null;
+
+    return {
+      id: basePlayer.id,
+      name: basePlayer.name || detail.name || previous.name || 'Unknown',
+      className: detail.className || previous.className || 'Unknown',
+      growth: clamp(Number.isFinite(detail.growth) ? detail.growth : previous.growth || 0, 0, 100),
+      health: clamp(Number.isFinite(detail.health) ? detail.health : previous.health || 0, 0, 100),
+      stamina: clamp(Number.isFinite(detail.stamina) ? detail.stamina : previous.stamina || 0, 0, 100),
+      hunger: clamp(Number.isFinite(detail.hunger) ? detail.hunger : previous.hunger || 0, 0, 100),
+      thirst: clamp(Number.isFinite(detail.thirst) ? detail.thirst : previous.thirst || 0, 0, 100),
+      x,
+      y,
+      z
+    };
+  });
+
+  for (const detail of detailPlayers) {
+    if (merged.some((player) => player.id === detail.id)) continue;
+    merged.push({
+      id: detail.id,
+      name: detail.name || 'Unknown',
+      className: detail.className || 'Unknown',
+      growth: clamp(Number.isFinite(detail.growth) ? detail.growth : 0, 0, 100),
+      health: clamp(Number.isFinite(detail.health) ? detail.health : 0, 0, 100),
+      stamina: clamp(Number.isFinite(detail.stamina) ? detail.stamina : 0, 0, 100),
+      hunger: clamp(Number.isFinite(detail.hunger) ? detail.hunger : 0, 0, 100),
+      thirst: clamp(Number.isFinite(detail.thirst) ? detail.thirst : 0, 0, 100),
+      x: Number.isFinite(detail.x) ? detail.x : null,
+      y: Number.isFinite(detail.y) ? detail.y : null,
+      z: Number.isFinite(detail.z) ? detail.z : null
+    });
+  }
+
+  return merged;
+}
+
 function parseServerDetails(raw) {
   const json = parseMaybeJson(raw);
   if (json) return json;
@@ -298,16 +419,6 @@ class EvrimaRconClient {
 }
 
 async function fetchState() {
-  if (!CONFIG.rconPassword) {
-    return {
-      ok: false,
-      error: 'RCON_PASSWORD ausente',
-      updatedAt: new Date().toISOString(),
-      players: [],
-      server: null
-    };
-  }
-
   if (stateCache.inFlight) {
     return stateCache.inFlight;
   }
@@ -326,19 +437,26 @@ async function fetchState() {
     });
 
     try {
-      const serverRaw = await client.request(COMMANDS.getServerDetails).catch(() => '');
-      const playerRaw = await client.request(COMMANDS.getPlayerData);
+      const previousPlayers = Array.isArray(stateCache.value?.players) ? stateCache.value.players : [];
+      const issues = [];
 
-      const players = parsePlayerData(playerRaw).map((player) => ({
+      const playerListRaw = await client.request(COMMANDS.getPlayerList);
+      const serverRaw = await client.request(COMMANDS.getServerDetails).catch((error) => {
+        issues.push(`serverdetails: ${error instanceof Error ? error.message : String(error)}`);
+        return '';
+      });
+      const playerRaw = await client.request(COMMANDS.getPlayerData).catch((error) => {
+        issues.push(`getplayerdata: ${error instanceof Error ? error.message : String(error)}`);
+        return '';
+      });
+
+      const playerList = parsePlayerList(playerListRaw);
+      const detailedPlayers = parsePlayerData(playerRaw);
+      const players = mergePlayerRecords(playerList, detailedPlayers, previousPlayers).map((player) => ({
         ...player,
-        x: Number.isFinite(player.x) ? player.x : 0,
-        y: Number.isFinite(player.y) ? player.y : 0,
-        z: Number.isFinite(player.z) ? player.z : 0,
-        growth: clamp(Number.isFinite(player.growth) ? player.growth : 0, 0, 100),
-        health: clamp(Number.isFinite(player.health) ? player.health : 0, 0, 100),
-        stamina: clamp(Number.isFinite(player.stamina) ? player.stamina : 0, 0, 100),
-        hunger: clamp(Number.isFinite(player.hunger) ? player.hunger : 0, 0, 100),
-        thirst: clamp(Number.isFinite(player.thirst) ? player.thirst : 0, 0, 100)
+        x: Number.isFinite(player.x) ? player.x : null,
+        y: Number.isFinite(player.y) ? player.y : null,
+        z: Number.isFinite(player.z) ? player.z : null
       }));
 
       const payload = {
@@ -347,7 +465,9 @@ async function fetchState() {
         players,
         playerCount: players.length,
         server: parseServerDetails(serverRaw),
+        warning: issues.length ? issues.join(' | ') : '',
         raw: {
+          playerListPreview: playerListRaw.slice(0, 1200),
           playerDataPreview: playerRaw.slice(0, 2500),
           serverDetailsPreview: serverRaw.slice(0, 1000)
         }
