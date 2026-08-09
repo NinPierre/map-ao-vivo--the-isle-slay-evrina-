@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>The Isle · Evrima</title>
+    <title>The Isle - Evrima</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -14,13 +14,15 @@
   </head>
   <body>
     <div class="grain"></div>
+    <div class="aurora aurora-one"></div>
+    <div class="aurora aurora-two"></div>
 
     <main class="shell">
       <section class="hero glass">
         <div>
-          <p class="eyebrow">The Isle · Evrima</p>
-          <h1>Mapa ao vivo.</h1>
-          <p class="lede">RCON, jogadores e coordenadas em uma tela limpa.</p>
+          <p class="eyebrow">The Isle / Evrima</p>
+          <h1>Gateway ao vivo.</h1>
+          <p class="lede">Jogadores e coordenadas em um mapa real, sem excesso visual.</p>
         </div>
 
         <div class="hero-stats">
@@ -44,82 +46,47 @@
           <div class="panel-head">
             <div>
               <p class="panel-kicker">Mapa</p>
-              <h2>Evrima</h2>
+              <h2>Gateway</h2>
             </div>
+
             <div class="panel-actions">
               <label class="mini-field">
                 <span>Filtro</span>
                 <input id="searchInput" type="search" placeholder="Nome, classe ou ID" />
               </label>
               <label class="mini-field">
-                <span>Coordenada</span>
-                <input id="manualInput" type="text" placeholder="Lat, Long, Alt" />
+                <span>Coordenadas</span>
+                <input id="manualInput" type="text" placeholder="X, Y, Z" />
               </label>
               <button id="applyButton" class="button button-primary">Ir</button>
             </div>
           </div>
 
           <div class="map-stage">
-            <svg id="mapSvg" viewBox="0 0 1200 980" preserveAspectRatio="none" aria-label="Mapa">
-              <defs>
-                <linearGradient id="waterGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stop-color="#07131d" />
-                  <stop offset="100%" stop-color="#03070b" />
-                </linearGradient>
-                <linearGradient id="landFill" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stop-color="#244c2f" />
-                  <stop offset="100%" stop-color="#102518" />
-                </linearGradient>
-              </defs>
-
-              <rect width="1200" height="980" fill="url(#waterGlow)" />
-
-              <g opacity="0.23">
-                <path d="M0 160H1200" class="grid-line" />
-                <path d="M0 320H1200" class="grid-line" />
-                <path d="M0 490H1200" class="grid-line" />
-                <path d="M0 660H1200" class="grid-line" />
-                <path d="M0 820H1200" class="grid-line" />
-                <path d="M150 0V980" class="grid-line" />
-                <path d="M320 0V980" class="grid-line" />
-                <path d="M500 0V980" class="grid-line" />
-                <path d="M680 0V980" class="grid-line" />
-                <path d="M850 0V980" class="grid-line" />
-                <path d="M1030 0V980" class="grid-line" />
-              </g>
-
-              <path
-                d="M186 92
-                   C114 188 88 296 108 378
-                   C132 474 206 540 230 624
-                   C258 723 220 810 244 862
-                   C285 951 454 953 567 909
-                   C681 864 721 777 812 716
-                   C918 645 1062 612 1103 528
-                   C1146 441 1098 318 1014 255
-                   C934 194 906 117 821 84
-                   C722 47 636 91 558 90
-                   C465 89 362 41 286 54
-                   C248 60 214 74 186 92 Z"
-                fill="url(#landFill)"
-                stroke="rgba(231, 209, 143, 0.18)"
-                stroke-width="4"
+            <div class="map-frame" id="mapFrame">
+              <img
+                class="map-image"
+                src="/gateway-map.webp"
+                alt="Mapa real de The Isle Evrima, Gateway"
+                draggable="false"
               />
 
-              <path d="M244 164 C352 130 420 154 506 206 C580 251 651 258 724 224 C833 173 934 172 1010 233" class="ridge" />
-              <path d="M228 310 C329 292 429 315 515 372 C596 426 699 442 808 421 C900 404 981 370 1060 312" class="ridge" />
-              <path d="M244 520 C348 490 423 510 494 570 C569 634 656 670 748 660 C856 648 928 601 1002 552" class="ridge" />
-              <path d="M305 792 C390 743 469 736 548 770 C638 808 719 816 818 789 C913 764 988 710 1056 650" class="ridge" />
-
-              <g id="poiLayer"></g>
-              <g id="markerLayer"></g>
-              <g id="labelLayer"></g>
-            </svg>
+              <svg
+                id="mapSvg"
+                class="map-overlay"
+                viewBox="0 0 1000 1003"
+                preserveAspectRatio="none"
+                aria-label="Mapa Gateway"
+              >
+                <g id="markerLayer"></g>
+                <g id="labelLayer"></g>
+                <g id="poiLayer"></g>
+              </svg>
+            </div>
 
             <div class="map-legend">
               <span><i class="dot dot-green"></i> Jogador</span>
               <span><i class="dot dot-amber"></i> Foco</span>
-              <span><i class="dot dot-blue"></i> Água</span>
             </div>
           </div>
         </div>
@@ -131,7 +98,7 @@
                 <p class="panel-kicker">Lista</p>
                 <h2>Jogadores</h2>
               </div>
-              <span id="visibleCount" class="pill">0 visíveis</span>
+              <span id="visibleCount" class="pill">0 visiveis</span>
             </div>
             <div id="playerList" class="player-list"></div>
           </section>
@@ -140,7 +107,7 @@
             <div class="panel-head compact">
               <div>
                 <p class="panel-kicker">RCON</p>
-                <h2>Estado</h2>
+                <h2>Conexao</h2>
               </div>
             </div>
             <div class="console-grid">
@@ -154,7 +121,7 @@
               </div>
               <div class="console-item">
                 <span>Mapa</span>
-                <strong>Evrima</strong>
+                <strong>Gateway</strong>
               </div>
               <div class="console-item">
                 <span>Fonte</span>
@@ -163,7 +130,7 @@
             </div>
             <p class="note" id="errorText">
               Configure <code>RCON_HOST</code>, <code>RCON_PORT</code> e <code>RCON_PASSWORD</code>
-              no <code>.env</code>.
+              no <code>.env</code>. Se o servidor estiver em outra maquina, use o IP dela.
             </p>
           </section>
         </aside>

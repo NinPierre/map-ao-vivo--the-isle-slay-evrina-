@@ -1,7 +1,5 @@
-const WORLD_BOUNDS = {
-  min: -320000,
-  max: 320000
-};
+const MAP_WIDTH = 1000;
+const MAP_HEIGHT = 1003;
 
 const state = {
   players: [],
@@ -49,40 +47,62 @@ function formatNumber(value) {
   return new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 }).format(value);
 }
 
-function mapToSvg(coord) {
-  const min = WORLD_BOUNDS.min;
-  const max = WORLD_BOUNDS.max;
-  const range = max - min;
-  const lon = coord.y;
-  const lat = coord.x;
-  const x = ((lon - min) / range) * 1200;
-  const y = (1 - (lat - min) / range) * 980;
-  return {
-    x: clamp(x, 0, 1200),
-    y: clamp(y, 0, 980)
-  };
-}
-
-function normalisePercent(value) {
-  if (!Number.isFinite(value)) return 0;
-  if (value <= 1) return value * 100;
-  return value;
+function parseCoordinateValue(value) {
+  const parsed = Number(String(value).replace(/,/g, '').trim());
+  return Number.isFinite(parsed) ? parsed : NaN;
 }
 
 function parseManualInput(text) {
-  const parts = text
+  const parts = String(text || '')
     .split(/[,\s]+/)
-    .map((item) => item.trim())
-    .filter(Boolean)
-    .map(Number);
+    .map((item) => parseCoordinateValue(item))
+    .filter((item) => Number.isFinite(item));
 
-  if (parts.length < 2 || parts.some((n) => Number.isNaN(n))) return null;
+  if (parts.length < 2) return null;
 
   return {
     x: parts[0],
     y: parts[1],
     z: parts[2] ?? 0
   };
+}
+
+function formatManualInput(coord) {
+  return `${Math.round(coord.x)}, ${Math.round(coord.y)}, ${Math.round(coord.z ?? 0)}`;
+}
+
+function gameToMap(gx, gy, clampToBounds = true) {
+  const latLongMode = Math.abs(gx) < 2500 && Math.abs(gy) < 2500;
+  const vX = latLongMode ? gx : gx / 1000;
+  const vY = latLongMode ? gy : gy / 1000;
+  const mapX = ((vY + 505) / 1112) * MAP_WIDTH;
+  const mapY = ((vX + 607) / 1116) * MAP_HEIGHT;
+
+  return {
+    x: clampToBounds ? clamp(mapX, 0, MAP_WIDTH) : mapX,
+    y: clampToBounds ? clamp(mapY, 0, MAP_HEIGHT) : mapY
+  };
+}
+
+function mapToGame(point) {
+  return {
+    x: ((point.y / MAP_HEIGHT) * 1116 - 607) * 1000,
+    y: ((point.x / MAP_WIDTH) * 1112 - 505) * 1000,
+    z: 0
+  };
+}
+
+function mapEventToPoint(event) {
+  const rect = els.mapSvg.getBoundingClientRect();
+  const x = clamp(((event.clientX - rect.left) / rect.width) * MAP_WIDTH, 0, MAP_WIDTH);
+  const y = clamp(((event.clientY - rect.top) / rect.height) * MAP_HEIGHT, 0, MAP_HEIGHT);
+  return { x, y };
+}
+
+function normalisePercent(value) {
+  if (!Number.isFinite(value)) return 0;
+  if (value <= 1) return value * 100;
+  return value;
 }
 
 function isVisible(player) {
@@ -92,8 +112,12 @@ function isVisible(player) {
   return haystack.includes(search);
 }
 
+function isLoopbackHost(host) {
+  return /^(127\.0\.0\.1|localhost)$/i.test(String(host || '').trim());
+}
+
 function speciesPalette(className) {
-  const key = className.toLowerCase();
+  const key = String(className || '').toLowerCase();
   if (key.includes('cerato') || key.includes('carno') || key.includes('deino') || key.includes('omni')) {
     return 'rgba(225, 193, 92, 0.95)';
   }
@@ -106,28 +130,24 @@ function speciesPalette(className) {
   return 'rgba(231, 241, 222, 0.92)';
 }
 
-function applyConfig(config) {
-  if (!config) return;
-  const min = Number(config.mapMinCoord);
-  const max = Number(config.mapMaxCoord);
-  if (Number.isFinite(min) && Number.isFinite(max) && max > min) {
-    WORLD_BOUNDS.min = min;
-    WORLD_BOUNDS.max = max;
-  }
-}
-
 function setStatus(ok, error) {
+  const host = state.config?.rconHost || '';
   if (ok) {
     els.statusText.textContent = 'RCON online';
     els.statusText.style.color = '#dff6d3';
-    els.errorText.textContent = 'Conexão ativa com o servidor.';
+    els.errorText.textContent = 'Conexao ativa com o servidor.';
     return;
   }
 
-  els.statusText.textContent = 'Sem conexão';
+  els.statusText.textContent = 'Sem conexao';
   els.statusText.style.color = '#f28b82';
-  els.errorText.textContent =
-    error || 'Não foi possível falar com o RCON. Confira host, porta, senha e reinicie o servidor se mudar os parâmetros.';
+  if (isLoopbackHost(host)) {
+    els.errorText.textContent =
+      'RCON em 127.0.0.1:5555 sem resposta. Se o servidor do jogo estiver em outra maquina, use o IP dela.';
+    return;
+  }
+
+  els.errorText.textContent = error || 'Nao foi possivel falar com o RCON. Confira host, porta, senha e firewall.';
 }
 
 function renderRoster() {
@@ -155,7 +175,7 @@ function renderRoster() {
     node.querySelector('.player-class').textContent = player.className || 'Unknown';
     node.querySelector('.player-id').textContent = player.id;
     node.querySelector('.player-coords').textContent =
-      `Lat ${formatNumber(player.x)} | Long ${formatNumber(player.y)} | Alt ${formatNumber(player.z)}`;
+      `X ${formatNumber(player.x)} | Y ${formatNumber(player.y)} | Z ${formatNumber(player.z)}`;
 
     const growth = node.querySelector('.fill.growth');
     const health = node.querySelector('.fill.health');
@@ -165,7 +185,7 @@ function renderRoster() {
     node.addEventListener('click', () => {
       state.selectedId = player.id;
       state.selectedCoord = { x: player.x, y: player.y, z: player.z };
-      els.manualInput.value = `${player.x.toFixed(3)}, ${player.y.toFixed(3)}, ${player.z.toFixed(3)}`;
+      els.manualInput.value = formatManualInput(state.selectedCoord);
       renderAll();
     });
 
@@ -183,40 +203,16 @@ function renderMap() {
   els.labelLayer.innerHTML = '';
   els.poiLayer.innerHTML = '';
 
-  const poiData = [
-    { x: -248000, y: -98000, name: 'West ridge' },
-    { x: -84000, y: 122000, name: 'Salt flats' },
-    { x: 76000, y: -118000, name: 'North marsh' },
-    { x: 178000, y: 162000, name: 'South basin' }
-  ];
-
-  for (const poi of poiData) {
-    const point = mapToSvg(poi);
-    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    circle.setAttribute('cx', point.x);
-    circle.setAttribute('cy', point.y);
-    circle.setAttribute('r', '7');
-    circle.setAttribute('fill', 'rgba(125, 193, 243, 0.85)');
-    circle.setAttribute('opacity', '0.9');
-    els.poiLayer.appendChild(circle);
-
-    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    label.setAttribute('x', point.x + 14);
-    label.setAttribute('y', point.y - 10);
-    label.classList.add('map-tag');
-    label.textContent = poi.name;
-    els.poiLayer.appendChild(label);
-  }
-
   state.filteredPlayers.forEach((player, index) => {
-    const point = mapToSvg(player);
+    const point = gameToMap(player.y, player.x);
     const isSelected = selected ? player.id === selected.id : index === 0;
+
     const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     ring.setAttribute('cx', point.x);
     ring.setAttribute('cy', point.y);
     ring.setAttribute('r', isSelected ? '26' : '20');
     ring.setAttribute('fill', 'none');
-    ring.setAttribute('stroke', isSelected ? 'rgba(225, 193, 92, 0.45)' : 'rgba(143, 195, 107, 0.28)');
+    ring.setAttribute('stroke', isSelected ? 'rgba(225, 193, 92, 0.45)' : 'rgba(143, 195, 107, 0.24)');
     ring.setAttribute('stroke-width', isSelected ? '4' : '3');
     els.markerLayer.appendChild(ring);
 
@@ -230,7 +226,7 @@ function renderMap() {
     pulse.addEventListener('click', () => {
       state.selectedId = player.id;
       state.selectedCoord = { x: player.x, y: player.y, z: player.z };
-      els.manualInput.value = `${player.x.toFixed(3)}, ${player.y.toFixed(3)}, ${player.z.toFixed(3)}`;
+      els.manualInput.value = formatManualInput(state.selectedCoord);
       renderAll();
     });
     els.markerLayer.appendChild(pulse);
@@ -244,7 +240,7 @@ function renderMap() {
   });
 
   if (selectedCoord) {
-    const point = mapToSvg(selectedCoord);
+    const point = gameToMap(selectedCoord.y, selectedCoord.x);
     const cross = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     cross.innerHTML = `
       <circle cx="${point.x}" cy="${point.y}" r="18" fill="rgba(225, 193, 92, 0.08)" stroke="rgba(225, 193, 92, 0.85)" stroke-width="2"></circle>
@@ -263,31 +259,34 @@ function renderAll() {
 
 async function refresh() {
   try {
-    const [configRes, stateRes] = await Promise.all([
-      state.config ? Promise.resolve(null) : fetch('/api/config').then((res) => res.json()),
-      fetch('/api/state')
-    ]);
-
+    const configRes = state.config ? null : await fetch('/api/config').then((res) => res.json());
     if (!state.config && configRes) {
       state.config = configRes;
-      applyConfig(configRes);
       els.rconHost.textContent = configRes.rconHost;
       els.rconPort.textContent = String(configRes.rconPort);
-      els.statusText.textContent = configRes.rconConfigured ? 'Conectando...' : 'RCON não configurado';
+      els.statusText.textContent = configRes.rconConfigured ? 'Conectando...' : 'RCON nao configurado';
     }
 
-    const payload = await stateRes.json();
+    const payload = await fetch('/api/state').then((res) => res.json());
     state.players = Array.isArray(payload.players) ? payload.players : [];
     state.server = payload.server || null;
     state.error = payload.ok ? null : payload.error;
     state.updatedAt = payload.updatedAt || new Date().toISOString();
-    applyConfig(state.config);
     setStatus(payload.ok, payload.error);
     renderAll();
   } catch (error) {
     state.error = error instanceof Error ? error.message : String(error);
     setStatus(false, state.error);
   }
+}
+
+function seedFallback() {
+  state.players = [];
+  state.updatedAt = new Date().toISOString();
+  els.rconHost.textContent = '--';
+  els.rconPort.textContent = '--';
+  els.statusText.textContent = 'Conectando...';
+  renderAll();
 }
 
 els.searchInput.addEventListener('input', (event) => {
@@ -304,23 +303,22 @@ els.applyButton.addEventListener('click', () => {
 });
 
 els.manualInput.addEventListener('keydown', (event) => {
-  if (event.key === 'Enter') {
-    const coord = parseManualInput(els.manualInput.value);
-    if (!coord) return;
-    state.selectedCoord = coord;
-    state.selectedId = null;
-    renderAll();
-  }
+  if (event.key !== 'Enter') return;
+  const coord = parseManualInput(els.manualInput.value);
+  if (!coord) return;
+  state.selectedCoord = coord;
+  state.selectedId = null;
+  renderAll();
 });
 
-function seedFallback() {
-  state.players = [];
-  state.updatedAt = new Date().toISOString();
-  els.rconHost.textContent = '--';
-  els.rconPort.textContent = '--';
-  els.statusText.textContent = 'Conectando...';
+els.mapSvg.addEventListener('click', (event) => {
+  const point = mapEventToPoint(event);
+  const coord = mapToGame(point);
+  state.selectedCoord = coord;
+  state.selectedId = null;
+  els.manualInput.value = formatManualInput(coord);
   renderAll();
-}
+});
 
 seedFallback();
 refresh();

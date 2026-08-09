@@ -39,17 +39,22 @@ function loadDotEnv(filePath) {
 
 loadDotEnv(envPath);
 
+function toNumber(value, fallback) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
 const CONFIG = {
-  webPort: Number(process.env.PORT || 3001),
+  webPort: toNumber(process.env.PORT, 3001),
   rconHost: process.env.RCON_HOST || '127.0.0.1',
-  rconPort: Number(process.env.RCON_PORT || 5555),
+  rconPort: toNumber(process.env.RCON_PORT, 5555),
   rconPassword: process.env.RCON_PASSWORD || '',
-  connectTimeoutMs: Number(process.env.RCON_CONNECT_TIMEOUT_MS || 15000),
-  responseTimeoutMs: Number(process.env.RCON_RESPONSE_TIMEOUT_MS || 15000),
-  idleResponseMs: Number(process.env.RCON_IDLE_RESPONSE_MS || 180),
-  cacheTtlMs: Number(process.env.RCON_CACHE_TTL_MS || 1500),
-  mapMinCoord: Number(process.env.MAP_MIN_COORD || -320000),
-  mapMaxCoord: Number(process.env.MAP_MAX_COORD || 320000)
+  connectTimeoutMs: toNumber(process.env.RCON_CONNECT_TIMEOUT_MS, 15000),
+  responseTimeoutMs: toNumber(process.env.RCON_RESPONSE_TIMEOUT_MS, 15000),
+  idleResponseMs: toNumber(process.env.RCON_IDLE_RESPONSE_MS, 180),
+  cacheTtlMs: toNumber(process.env.RCON_CACHE_TTL_MS, 1500),
+  mapMinCoord: toNumber(process.env.MAP_MIN_COORD, -320000),
+  mapMaxCoord: toNumber(process.env.MAP_MAX_COORD, 320000)
 };
 
 const COMMANDS = {
@@ -91,6 +96,13 @@ function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
 
+function parseNumericValue(value) {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+  const normalized = String(value ?? '').replace(/,/g, '').trim();
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 function parseMaybeJson(raw) {
   const trimmed = raw.trim();
   if (!trimmed) return null;
@@ -114,14 +126,14 @@ function parsePlayerData(raw) {
           id: String(item.id ?? item.playerId ?? item.PlayerID ?? item.steamId ?? ''),
           name: String(item.name ?? item.Name ?? 'Unknown'),
           className: String(item.className ?? item.class ?? item.DinoClass ?? 'Unknown'),
-          growth: Number(item.growth ?? item.Growth ?? 0),
-          health: Number(item.health ?? item.Health ?? 0),
-          stamina: Number(item.stamina ?? item.Stamina ?? 0),
-          hunger: Number(item.hunger ?? item.Hunger ?? 0),
-          thirst: Number(item.thirst ?? item.Thirst ?? 0),
-          x: Number(location.x ?? location.X ?? item.x ?? item.X ?? 0),
-          y: Number(location.y ?? location.Y ?? item.y ?? item.Y ?? 0),
-          z: Number(location.z ?? location.Z ?? item.z ?? item.Z ?? 0)
+          growth: parseNumericValue(item.growth ?? item.Growth ?? 0),
+          health: parseNumericValue(item.health ?? item.Health ?? 0),
+          stamina: parseNumericValue(item.stamina ?? item.Stamina ?? 0),
+          hunger: parseNumericValue(item.hunger ?? item.Hunger ?? 0),
+          thirst: parseNumericValue(item.thirst ?? item.Thirst ?? 0),
+          x: parseNumericValue(location.x ?? location.X ?? item.x ?? item.X ?? 0),
+          y: parseNumericValue(location.y ?? location.Y ?? item.y ?? item.Y ?? 0),
+          z: parseNumericValue(location.z ?? location.Z ?? item.z ?? item.Z ?? 0)
         };
       })
       .filter((player) => player.id || player.name);
@@ -130,7 +142,7 @@ function parsePlayerData(raw) {
   const lines = raw.replace(/\0/g, '').split(/\r?\n/);
   const players = [];
   const matcher =
-    /Name:\s*(.*?)\s*,\s*PlayerID:\s*([^,]+),\s*Location:\s*X=([-.\d]+)\s*Y=([-.\d]+)\s*Z=([-.\d]+),\s*Class:\s*([^,]+),\s*Growth:\s*([-.\d]+),\s*Health:\s*([-.\d]+),\s*Stamina:\s*([-.\d]+),\s*Hunger:\s*([-.\d]+),\s*Thirst:\s*([-.\d]+)/;
+    /Name:\s*(.*?)\s*,\s*PlayerID:\s*([^,]+),\s*Location:\s*X=([-,.\d]+)\s*Y=([-,.\d]+)\s*Z=([-,.\d]+),\s*Class:\s*([^,]+),\s*Growth:\s*([-,.\d]+),\s*Health:\s*([-,.\d]+),\s*Stamina:\s*([-,.\d]+),\s*Hunger:\s*([-,.\d]+),\s*Thirst:\s*([-,.\d]+)/;
 
   for (const line of lines) {
     const match = line.match(matcher);
@@ -139,15 +151,15 @@ function parsePlayerData(raw) {
     players.push({
       name: match[1].trim(),
       id: match[2].trim(),
-      x: Number(match[3]),
-      y: Number(match[4]),
-      z: Number(match[5]),
+      x: parseNumericValue(match[3]),
+      y: parseNumericValue(match[4]),
+      z: parseNumericValue(match[5]),
       className: match[6].trim(),
-      growth: Number(match[7]) * 100,
-      health: Number(match[8]) * 100,
-      stamina: Number(match[9]) * 100,
-      hunger: Number(match[10]) * 100,
-      thirst: Number(match[11]) * 100
+      growth: parseNumericValue(match[7]) * 100,
+      health: parseNumericValue(match[8]) * 100,
+      stamina: parseNumericValue(match[9]) * 100,
+      hunger: parseNumericValue(match[10]) * 100,
+      thirst: parseNumericValue(match[11]) * 100
     });
   }
 
@@ -304,20 +316,18 @@ async function fetchState() {
   if (freshEnough) return stateCache.value;
 
   stateCache.inFlight = (async () => {
-      const client = new EvrimaRconClient({
-        host: CONFIG.rconHost,
-        port: CONFIG.rconPort,
-        password: CONFIG.rconPassword,
-        connectTimeoutMs: CONFIG.connectTimeoutMs,
-        responseTimeoutMs: CONFIG.responseTimeoutMs,
-        idleResponseMs: CONFIG.idleResponseMs
-      });
+    const client = new EvrimaRconClient({
+      host: CONFIG.rconHost,
+      port: CONFIG.rconPort,
+      password: CONFIG.rconPassword,
+      connectTimeoutMs: CONFIG.connectTimeoutMs,
+      responseTimeoutMs: CONFIG.responseTimeoutMs,
+      idleResponseMs: CONFIG.idleResponseMs
+    });
 
     try {
-      const [serverRaw, playerRaw] = await Promise.all([
-        client.request(COMMANDS.getServerDetails).catch(() => ''),
-        client.request(COMMANDS.getPlayerData)
-      ]);
+      const serverRaw = await client.request(COMMANDS.getServerDetails).catch(() => '');
+      const playerRaw = await client.request(COMMANDS.getPlayerData);
 
       const players = parsePlayerData(playerRaw).map((player) => ({
         ...player,
@@ -400,25 +410,62 @@ async function serveStatic(req, res, pathname) {
   }
 }
 
-const server = http.createServer(async (req, res) => {
-  const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
-  const { pathname } = url;
+function createHttpServer() {
+  return http.createServer(async (req, res) => {
+    const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
+    const { pathname } = url;
 
-  if (pathname === '/api/config') {
-    sendJson(res, 200, sanitizeConfig());
-    return;
-  }
+    if (pathname === '/api/config') {
+      sendJson(res, 200, sanitizeConfig());
+      return;
+    }
 
-  if (pathname === '/api/state') {
-    const state = await fetchState();
-    sendJson(res, state.ok ? 200 : 503, state);
-    return;
-  }
+    if (pathname === '/api/state') {
+      const state = await fetchState();
+      sendJson(res, state.ok ? 200 : 503, state);
+      return;
+    }
 
-  await serveStatic(req, res, pathname);
-});
+    await serveStatic(req, res, pathname);
+  });
+}
 
-server.listen(CONFIG.webPort, () => {
-  console.log(`The Isle live map running on http://localhost:${CONFIG.webPort}`);
-  console.log(`RCON target: ${CONFIG.rconHost}:${CONFIG.rconPort}`);
-});
+export function startServer(port = CONFIG.webPort) {
+  const server = createHttpServer();
+
+  return new Promise((resolve, reject) => {
+    const tryListen = (currentPort, attempt) => {
+      const onError = (error) => {
+        if (error.code === 'EADDRINUSE' && attempt < 10) {
+          const nextPort = currentPort + 1;
+          console.warn(`Port ${currentPort} is busy; trying ${nextPort} instead.`);
+          server.removeListener('error', onError);
+          tryListen(nextPort, attempt + 1);
+          return;
+        }
+
+        reject(error);
+      };
+
+      server.once('error', onError);
+      server.listen(currentPort, () => {
+        const address = server.address();
+        if (address && typeof address === 'object') {
+          CONFIG.webPort = address.port;
+        }
+        console.log(`The Isle live map running on http://localhost:${CONFIG.webPort}`);
+        console.log(`RCON target: ${CONFIG.rconHost}:${CONFIG.rconPort}`);
+        resolve(server);
+      });
+    };
+
+    tryListen(port, 0);
+  });
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
+  startServer().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}
