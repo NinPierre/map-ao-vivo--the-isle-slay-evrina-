@@ -1,5 +1,9 @@
 const MAP_WIDTH = 1000;
 const MAP_HEIGHT = 1003;
+const WORLD_X_MIN = -505;
+const WORLD_X_MAX = 607;
+const WORLD_Y_MIN = -607;
+const WORLD_Y_MAX = 505;
 
 const state = {
   players: [],
@@ -72,8 +76,9 @@ function gameToMap(gx, gy, clampToBounds = true) {
   const latLongMode = Math.abs(gx) < 2500 && Math.abs(gy) < 2500;
   const vX = latLongMode ? gx : gx / 1000;
   const vY = latLongMode ? gy : gy / 1000;
-  const mapX = ((vY + 505) / 1112) * MAP_WIDTH;
-  const mapY = ((vX + 607) / 1116) * MAP_HEIGHT;
+  // Gateway uses x as the horizontal axis and y as the vertical axis.
+  const mapX = ((vX - WORLD_X_MIN) / (WORLD_X_MAX - WORLD_X_MIN)) * MAP_WIDTH;
+  const mapY = ((vY - WORLD_Y_MIN) / (WORLD_Y_MAX - WORLD_Y_MIN)) * MAP_HEIGHT;
 
   return {
     x: clampToBounds ? clamp(mapX, 0, MAP_WIDTH) : mapX,
@@ -83,8 +88,8 @@ function gameToMap(gx, gy, clampToBounds = true) {
 
 function mapToGame(point) {
   return {
-    x: ((point.y / MAP_HEIGHT) * 1116 - 607) * 1000,
-    y: ((point.x / MAP_WIDTH) * 1112 - 505) * 1000,
+    x: ((point.x / MAP_WIDTH) * (WORLD_X_MAX - WORLD_X_MIN) + WORLD_X_MIN) * 1000,
+    y: ((point.y / MAP_HEIGHT) * (WORLD_Y_MAX - WORLD_Y_MIN) + WORLD_Y_MIN) * 1000,
     z: 0
   };
 }
