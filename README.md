@@ -17,6 +17,21 @@ Painel web para **The Isle: Evrima** com leitura ao vivo via RCON.
 3. Inicie com `npm start`.
 4. Abra `http://localhost:3001`.
 
+## Ver coordenadas dos jogadores
+
+Se você quiser conferir as posições direto no servidor que você administra, use:
+
+```bash
+npm run rcon:players
+```
+
+Para filtrar um jogador específico:
+
+```bash
+node rcon-diagnose.js --dump-players --steam-id 12345678901234567
+node rcon-diagnose.js --dump-players --name seu_nome
+```
+
 ### Exemplo `.env`
 
 ```env

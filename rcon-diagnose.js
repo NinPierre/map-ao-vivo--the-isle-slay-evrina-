@@ -264,6 +264,100 @@ function parsePlayerList(rawResponse) {
   return players;
 }
 
+function parseNumericValue(value) {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+  const normalized = String(value ?? '').replace(/,/g, '').trim();
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function parseMaybeJson(raw) {
+  const trimmed = String(raw || '').trim();
+  if (!trimmed) return null;
+  if (!(trimmed.startsWith('{') || trimmed.startsWith('['))) return null;
+
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    return null;
+  }
+}
+
+function parsePlayerData(raw) {
+  const json = parseMaybeJson(raw);
+  if (json) {
+    const list = Array.isArray(json) ? json : json.players || json.data || [];
+    return list
+      .map((item) => {
+        const location = item.location || item.Location || {};
+        return {
+          id: String(item.id ?? item.playerId ?? item.PlayerID ?? item.steamId ?? ''),
+          name: String(item.name ?? item.Name ?? 'Unknown'),
+          className: String(item.className ?? item.class ?? item.DinoClass ?? 'Unknown'),
+          growth: parseNumericValue(item.growth ?? item.Growth ?? 0),
+          health: parseNumericValue(item.health ?? item.Health ?? 0),
+          stamina: parseNumericValue(item.stamina ?? item.Stamina ?? 0),
+          hunger: parseNumericValue(item.hunger ?? item.Hunger ?? 0),
+          thirst: parseNumericValue(item.thirst ?? item.Thirst ?? 0),
+          x: parseNumericValue(location.x ?? location.X ?? item.x ?? item.X ?? 0),
+          y: parseNumericValue(location.y ?? location.Y ?? item.y ?? item.Y ?? 0),
+          z: parseNumericValue(location.z ?? location.Z ?? item.z ?? item.Z ?? 0)
+        };
+      })
+      .filter((player) => player.id || player.name);
+  }
+
+  const lines = String(raw || '')
+    .replace(/\0/g, '')
+    .split(/\r?\n/);
+  const players = [];
+  const matcher =
+    /Name:\s*(.*?)\s*,\s*PlayerID:\s*([^,]+)[\s\S]*?Location:\s*X=([-\.\d]+)\s*Y=([-\.\d]+)\s*Z=([-\.\d]+)[\s\S]*?Class:\s*([^,]+)[\s\S]*?Growth:\s*([-\.\d]+)[\s\S]*?Health:\s*([-\.\d]+)[\s\S]*?Stamina:\s*([-\.\d]+)[\s\S]*?Hunger:\s*([-\.\d]+)[\s\S]*?Thirst:\s*([-\.\d]+)/i;
+
+  for (const line of lines) {
+    const match = line.match(matcher);
+    if (!match) continue;
+
+    players.push({
+      name: match[1].trim(),
+      id: match[2].trim(),
+      x: parseNumericValue(match[3]),
+      y: parseNumericValue(match[4]),
+      z: parseNumericValue(match[5]),
+      className: match[6].trim(),
+      growth: parseNumericValue(match[7]) * 100,
+      health: parseNumericValue(match[8]) * 100,
+      stamina: parseNumericValue(match[9]) * 100,
+      hunger: parseNumericValue(match[10]) * 100,
+      thirst: parseNumericValue(match[11]) * 100
+    });
+  }
+
+  return players;
+}
+
+function formatPlayerLine(player) {
+  const name = player.name || 'Unknown';
+  const id = player.id || 'n/a';
+  const coords =
+    Number.isFinite(player.x) && Number.isFinite(player.y) && Number.isFinite(player.z)
+      ? `x=${player.x} y=${player.y} z=${player.z}`
+      : 'coords=unavailable';
+  const className = player.className || 'Unknown';
+  return `${name} | ${id} | ${className} | ${coords}`;
+}
+
+function filterPlayers(players, { steamId, name }) {
+  const steamNeedle = String(steamId || '').trim();
+  const nameNeedle = String(name || '').trim().toLowerCase();
+
+  return players.filter((player) => {
+    if (steamNeedle && String(player.id || '') !== steamNeedle) return false;
+    if (nameNeedle && !String(player.name || '').toLowerCase().includes(nameNeedle)) return false;
+    return true;
+  });
+}
+
 const COMMANDS = {
   playerlist: 0x40,
   serverdetails: 0x12,
@@ -416,6 +510,16 @@ async function runDirectTest(config) {
   }
 }
 
+async function dumpPlayers(config, filters = {}) {
+  const client = new RconClient(config);
+  const response = await client.request('getplayerdata');
+  const players = filterPlayers(parsePlayerData(response), filters);
+
+  console.log(`[OK] getplayerdata respondeu. Jogadores encontrados: ${players.length}`);
+
+  return players;
+}
+
 async function scanRcon(options) {
   const { subnets, start, end, port, timeoutMs, responseTimeoutMs, idleMs, password } = options;
   console.log(`[INFO] Scan RCON: subnets=${subnets.join(',')} range=${start}-${end} port=${port}`);
@@ -474,6 +578,10 @@ async function main() {
     getArg(args, '--idle-ms', process.env.RCON_IDLE_RESPONSE_MS || 180),
     180
   );
+  const dumpPlayersFlag = boolArg(getArg(args, '--dump-players', 'false'));
+  const steamIdFilter = getArg(args, '--steam-id', '');
+  const nameFilter = getArg(args, '--name', '');
+  const jsonOutput = boolArg(getArg(args, '--json', 'false'));
 
   console.log('[INFO] Diagnostico RCON iniciado.');
   console.log(`[INFO] host=${host} port=${port} password=${password ? 'ok' : 'vazio'}`);
@@ -490,6 +598,29 @@ async function main() {
       responseTimeoutMs,
       idleResponseMs
     });
+
+    if (dumpPlayersFlag) {
+      const players = await dumpPlayers(
+        {
+          host,
+          port,
+          password,
+          connectTimeoutMs,
+          responseTimeoutMs,
+          idleResponseMs
+        },
+        { steamId: steamIdFilter, name: nameFilter }
+      );
+
+      if (jsonOutput) {
+        console.log(JSON.stringify(players, null, 2));
+      } else {
+        for (const player of players) {
+          console.log(formatPlayerLine(player));
+        }
+      }
+    }
+
     console.log('[OK] Diagnostico concluido.');
     return;
   } catch (error) {
